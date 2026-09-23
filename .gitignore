@@ -53,3 +53,6 @@ build
 
 # Ignore Docker env file
 docker.env
+
+# Ballerina example packages resolve the connector locally
+examples/*/Dependencies.toml
