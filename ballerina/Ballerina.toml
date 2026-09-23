@@ -1,8 +1,8 @@
 [package]
-distribution = "2201.13.4"
+distribution = "2201.12.0"
 org = "ballerinax"
 name = "microsoft.dynamics365.bc"
-version = "0.9.0"
+version = "1.0.0"
 license = ["Apache-2.0"]
 authors = ["Ballerina"]
 keywords = ["Vendor/Microsoft", "Area/ERP & Business Operations", "Type/Connector"]
@@ -11,6 +11,3 @@ repository = "https://github.com/ballerina-platform/module-ballerinax-microsoft.
 
 [build-options]
 observabilityIncluded = true
-
-[platform.java21]
-graalvmCompatible = true
