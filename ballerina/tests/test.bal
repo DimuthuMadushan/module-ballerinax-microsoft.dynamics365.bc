@@ -16,6 +16,7 @@
 
 import ballerina/os;
 import ballerina/test;
+import ballerina/time;
 
 final boolean isLiveServer = os:getEnv("IS_LIVE_SERVER") == "true";
 
@@ -42,9 +43,19 @@ final string employeeId = isLiveServer
 final string salesInvoiceId = isLiveServer
     ? os:getEnv("BC_SALES_INVOICE_ID")
     : "e1f2a3b4-bbbb-44c5-9031-a21324354657";
-final string journalId = isLiveServer
-    ? os:getEnv("BC_JOURNAL_ID")
-    : "c5d6e7f8-ffff-4809-9475-e576879a0b1c";
+final string glAccountId = isLiveServer
+    ? os:getEnv("BC_GL_ACCOUNT_ID")
+    : "d6e7f8a9-0a0a-491a-8586-f6879a0b1c2d";
+
+// Posting writes ledger entries that cannot be undone, so against a live environment the
+// posting tests run only when the operator confirms the target is an isolated sandbox.
+final boolean isSandboxPostingConfirmed = os:getEnv("BC_SANDBOX_POSTING") == "true";
+
+isolated function ensurePostingAllowed() returns error? {
+    if isLiveServer && !isSandboxPostingConfirmed {
+        return error("posting tests run only against an isolated sandbox; set BC_SANDBOX_POSTING=true to confirm");
+    }
+}
 
 final string taxGroupId = isLiveServer
     ? os:getEnv("BC_TAX_GROUP_ID")
@@ -208,9 +219,18 @@ isolated function testListSalesInvoiceLinesForSalesInvoice() returns error? {
     test:assertTrue(lines.length() > 0, "at least one sales invoice line must be returned");
 }
 
-@test:Config {groups: ["live_tests", "mock_tests"]}
+@test:Config {groups: ["sandbox_posting_tests", "mock_tests"]}
 isolated function testPostSalesInvoice() returns error? {
-    error? response = bcClient->postSalesInvoice(companyId, salesInvoiceId);
+    check ensurePostingAllowed();
+    // Post a test-owned draft rather than a shared fixture, so each run posts a fresh record.
+    SalesInvoice invoice = check bcClient->createSalesInvoice(companyId, {customerId: customerId});
+    string invoiceId = check invoice?.id.ensureType();
+    _ = check bcClient->createSalesInvoiceLineForSalesInvoice(companyId, invoiceId, {
+        lineType: "Item",
+        itemId: itemId,
+        quantity: 1
+    });
+    error? response = bcClient->postSalesInvoice(companyId, invoiceId);
     test:assertTrue(response is (), "posting the sales invoice must complete without an error");
 }
 
@@ -251,8 +271,21 @@ isolated function testListJournals() returns error? {
     test:assertTrue(journals.length() > 0, "at least one journal must be returned");
 }
 
-@test:Config {groups: ["live_tests", "mock_tests"]}
+@test:Config {groups: ["sandbox_posting_tests", "mock_tests"]}
 isolated function testPostJournal() returns error? {
+    check ensurePostingAllowed();
+    // Post a test-owned journal batch holding one balanced pair of lines on the same account.
+    string code = string `BAL${time:utcNow()[0] % 10000000}`;
+    Journal journal = check bcClient->createJournal(companyId, {code, displayName: "Connector test journal"});
+    string journalId = check journal?.id.ensureType();
+    foreach decimal amount in [10d, -10d] {
+        _ = check bcClient->createJournalLineForJournal(companyId, journalId, {
+            accountId: glAccountId,
+            documentNumber: code,
+            amount,
+            description: "Connector test posting"
+        });
+    }
     error? response = bcClient->postJournal(companyId, journalId);
     test:assertTrue(response is (), "posting the journal must complete without an error");
 }

@@ -8,6 +8,7 @@ import ballerinax/microsoft.dynamics365.bc as bc;
 // Create a Config.toml in this directory with these values before running.
 configurable string token = ?;
 configurable string companyId = ?;
+configurable string itemId = ?;
 
 public function main() returns error? {
     bc:Client dynamics365 = check new ({auth: {token}});
@@ -34,14 +35,23 @@ public function main() returns error? {
     }
     io:println("Opened sales order: ", salesOrder?.number);
 
-    // Step 3: read back the lines that belong to the order.
+    // Step 3: add the item being sold as an order line.
+    bc:SalesOrderLine line = check dynamics365->createSalesOrderLineForSalesOrder(
+        companyId, salesOrderId, {
+            lineType: "Item",
+            itemId: itemId,
+            quantity: 2d
+        });
+    io:println("Added order line for quantity: ", line?.quantity);
+
+    // Step 4: read back the lines that belong to the order.
     bc:SalesOrderLineCollection lines =
         check dynamics365->listSalesOrderLinesForSalesOrder(companyId, salesOrderId);
     bc:SalesOrderLine[] orderLines = lines.value ?: [];
     io:println("Lines on the order: ", orderLines.length());
 
-    // Step 4: show what is still open across the company.
+    // Step 5: show the most recent orders in the company, up to the first 20.
     bc:SalesOrderCollection open = check dynamics365->listSalesOrders(companyId, top = 20);
     bc:SalesOrder[] openOrders = open.value ?: [];
-    io:println("Sales orders in the company: ", openOrders.length());
+    io:println("Sales orders returned (limit 20): ", openOrders.length());
 }

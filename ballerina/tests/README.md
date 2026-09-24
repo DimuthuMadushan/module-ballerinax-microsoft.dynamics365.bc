@@ -11,6 +11,8 @@ covering every group in the surface:
   general ledger entries and projects, plus the nested line collection
   (`listSalesInvoiceLinesForSalesInvoice`).
 - **Bound actions** — the no-content lifecycle actions `postSalesInvoice` and `postJournal`.
+  Each posting test creates its own draft first (a sales invoice with one item line, and a
+  journal batch with a balanced pair of lines), so a run never posts a shared record.
 - **Financial reports** — `listBalanceSheetLines`, `listIncomeStatementLines`,
   `listCashFlowStatementLines`, `listRetainedEarningsStatementLines`,
   `listTrialBalanceLines`, `listAgedAccountsReceivable` and `listAgedAccountsPayable`.
@@ -39,20 +41,31 @@ client produces. No credentials are required.
 
 ## Running tests against a live environment
 
-Set `IS_LIVE_SERVER` and supply the environment's service URL, an OAuth 2.0 access token
-and identifiers that exist in the target company:
+Use an isolated **sandbox** environment, never production. Set `IS_LIVE_SERVER` and supply
+the sandbox's service URL, an OAuth 2.0 access token and identifiers that exist in the
+target company:
 
 ```bash
 export IS_LIVE_SERVER=true
-export BC_SERVICE_URL="https://api.businesscentral.dynamics.com/v2.0/production/api/v1.0"
+export BC_SERVICE_URL="https://api.businesscentral.dynamics.com/v2.0/<sandbox environment>/api/v1.0"
 export BC_ACCESS_TOKEN="<access token>"
 export BC_COMPANY_ID="<company id>"
 export BC_ITEM_ID="<item id>"
 export BC_CUSTOMER_ID="<customer id>"
 export BC_EMPLOYEE_ID="<employee id>"
 export BC_SALES_INVOICE_ID="<sales invoice id>"
-export BC_JOURNAL_ID="<journal id>"
 export BC_TAX_GROUP_ID="<tax group id>"
 export BC_UNIT_OF_MEASURE_ID="<unit of measure id>"
 bal test --groups live_tests
+```
+
+The posting tests are in a separate `sandbox_posting_tests` group, because posting writes
+ledger entries that cannot be undone. They also refuse to run against a live environment
+unless `BC_SANDBOX_POSTING=true` confirms that the target is an isolated sandbox, and they
+need a general ledger account that allows direct posting:
+
+```bash
+export BC_SANDBOX_POSTING=true
+export BC_GL_ACCOUNT_ID="<direct-posting G/L account id>"
+bal test --groups sandbox_posting_tests
 ```

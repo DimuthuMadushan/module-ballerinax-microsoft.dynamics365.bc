@@ -10,12 +10,6 @@ Central creates the customer and the invoice, and hands the posting step to Busi
 
 ## Prerequisites
 
-- Ballerina Swan Lake 2201.13.4 or later
-- Push the connector to the local repository:
-  ```bash
-  cd ballerina
-  bal pack && bal push --repository=local
-  ```
 - An OAuth 2.0 access token for the Business Central API, and the identifiers of the target
   company and of an item to invoice. See the [setup guide](../../ballerina/README.md#setup-guide).
 - Create a `Config.toml` in this directory:
@@ -23,7 +17,9 @@ Central creates the customer and the invoice, and hands the posting step to Busi
   token = "<access token>"
   companyId = "<company id>"
   itemId = "<item id>"
+  invoiceDate = "<invoice date, YYYY-MM-DD>"
   ```
+  `invoiceDate` must fall within the company's allowed posting period, or posting fails.
 
 ## Run the example
 

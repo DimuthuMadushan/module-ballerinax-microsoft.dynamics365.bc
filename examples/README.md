@@ -13,9 +13,9 @@ same client and the same OData query options.
 | Example | Description |
 |---------|-------------|
 | [`customer_invoice_workflow`](./customer_invoice_workflow/customer_invoice_workflow.md) | Onboard a customer, raise a sales invoice with a line, and post it to the general ledger. |
-| [`item_catalog_management`](./item_catalog_management/item_catalog_management.md) | Review the item catalog, register a new stocked item, and correct its price with an `If-Match` guarded update. |
-| [`sales_order_processing`](./sales_order_processing/sales_order_processing.md) | Open a sales order for an existing customer and read back the lines that belong to it. |
-| [`financial_ledger_review`](./financial_ledger_review/financial_ledger_review.md) | Take a month-end snapshot of the chart of accounts, the bank accounts, and the posted ledger entries. |
+| [`item_catalog_management`](./item_catalog_management/item_catalog_management.md) | Review the item catalog, register a new stocked item, and correct its price with an update sent with `If-Match: *`. |
+| [`sales_order_processing`](./sales_order_processing/sales_order_processing.md) | Open a sales order for an existing customer, add an item line, and read back the lines that belong to it. |
+| [`financial_ledger_review`](./financial_ledger_review/financial_ledger_review.md) | Take a month-end snapshot of the chart of accounts, the bank accounts, and the posted ledger entries returned in one response. |
 
 ## Prerequisites
 
@@ -23,16 +23,19 @@ same client and the same OData query options.
    [setup guide](../ballerina/README.md#setup-guide), and note the identifier of the
    company the example should run against.
 
-2. Build and push the connector to your local Ballerina repository:
+2. Build and push the connector to your local Ballerina repository. Starting from this
+   `examples` directory, push the connector and then enter the example to run:
 
     ```bash
     cd ../ballerina
     bal pack && bal push --repository=local
+    cd ../examples/<example>
     ```
 
 3. For each example, create a `Config.toml` in that example's directory with the values it
    declares as `configurable` — every example needs `token` and `companyId`, and
-   `customer_invoice_workflow` also needs `itemId`:
+   `customer_invoice_workflow` also needs `itemId` and `invoiceDate`, and
+   `sales_order_processing` also needs `itemId`:
 
     ```toml
     token = "<access token>"
@@ -41,7 +44,7 @@ same client and the same OData query options.
 
 ## Running an example
 
-Execute the following commands to build an example from the source:
+Execute the following commands from the example's directory to build it from the source:
 
 * To build an example:
 

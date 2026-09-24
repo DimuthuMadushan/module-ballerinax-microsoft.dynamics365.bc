@@ -535,6 +535,13 @@ service / on ep0 {
         return {value: [mockJournal]};
     }
 
+    # Creates a journal in a company.
+    #
+    # + return - The mocked Business Central response.
+    resource function post [string company]/journals(@http:Payload JournalRequest payload) returns Journal {
+        return mockJournal;
+    }
+
     # Returns the general ledger accounts of a company.
     #
     # + return - The mocked Business Central response.
@@ -777,6 +784,20 @@ service / on ep0 {
     # + return - The mocked Business Central response.
     resource function get [string company]/[string salesInvoice]/salesInvoiceLines() returns SalesInvoiceLineCollection {
         return {value: [mockSalesInvoiceLine]};
+    }
+
+    # Creates a sales invoice line in a sales invoice.
+    #
+    # + return - The mocked Business Central response.
+    resource function post [string company]/[string salesInvoice]/salesInvoiceLines(@http:Payload SalesInvoiceLineRequest payload) returns SalesInvoiceLine {
+        return mockSalesInvoiceLine;
+    }
+
+    # Creates a journal line in a journal.
+    #
+    # + return - The mocked Business Central response.
+    resource function post [string company]/[string journal]/journalLines(@http:Payload JournalLineRequest payload) returns JournalLine {
+        return {accountId: payload?.accountId, documentNumber: payload?.documentNumber, amount: payload?.amount};
     }
 
     # Performs a Microsoft.NAV bound action on an entity and answers with no content.

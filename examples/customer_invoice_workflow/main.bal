@@ -8,6 +8,7 @@ import ballerinax/microsoft.dynamics365.bc as bc;
 configurable string token = ?;
 configurable string companyId = ?;
 configurable string itemId = ?;
+configurable string invoiceDate = ?;
 
 public function main() returns error? {
     bc:Client dynamics365 = check new ({auth: {token}});
@@ -29,7 +30,7 @@ public function main() returns error? {
     // Step 2: raise a draft sales invoice for that customer.
     bc:SalesInvoice invoice = check dynamics365->createSalesInvoice(companyId, {
         customerId: customerId,
-        invoiceDate: "2026-04-01",
+        invoiceDate: invoiceDate,
         externalDocumentNumber: "PO-2026-0412"
     });
     string invoiceId = invoice.id ?: "";

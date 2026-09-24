@@ -28,6 +28,8 @@ public function main() returns error? {
     }
 
     // Step 4: read the entries posted in the period. `filter` takes an OData expression.
+    // The counts and totals cover only the entries in this response: continuation pages
+    // (`@odata.nextLink`) are not fetched.
     bc:GeneralLedgerEntryCollection ledger = check dynamics365->listGeneralLedgerEntries(
         companyId, filter = "postingDate ge 2026-03-01 and postingDate le 2026-03-31");
     bc:GeneralLedgerEntry[] entries = ledger.value ?: [];
@@ -37,6 +39,6 @@ public function main() returns error? {
         debits += entry?.debitAmount ?: 0d;
         credits += entry?.creditAmount ?: 0d;
     }
-    io:println("Entries in the period: ", entries.length());
-    io:println("Total debits: ", debits, " total credits: ", credits);
+    io:println("Entries returned in this response: ", entries.length());
+    io:println("Returned debits: ", debits, " returned credits: ", credits);
 }

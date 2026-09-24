@@ -31,8 +31,9 @@ public function main() returns error? {
     }
     io:println("Registered item: ", created?.displayName, " (", created?.number, ")");
 
-    // Step 3: correct the price. `ifMatch` carries the ETag of the entity being changed;
-    // "*" accepts whatever the current version is.
+    // Step 3: correct the price. `ifMatch` normally carries the ETag read with the entity;
+    // "*" only requires the item to exist and does not compare ETags, so a concurrent
+    // edit made since the read can be overwritten.
     bc:Item updated = check dynamics365->updateItem(companyId, itemId, {ifMatch: "*"}, {
         unitPrice: 199d
     });
