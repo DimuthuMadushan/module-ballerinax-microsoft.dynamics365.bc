@@ -1,6 +1,6 @@
-_Author_:  DimuthuMadushan \
+_Author_:  @DimuthuMadushan \
 _Created_: 2026/09/22 \
-_Updated_: 2026/10/05 \
+_Updated_: 2026/11/06 \
 _Edition_: Swan Lake
 
 # Sanitation for OpenAPI specification
@@ -3683,6 +3683,16 @@ These changes are done in order to improve the overall usability, and as workaro
 - **Updated**: The `amountIncludingTax` field has been updated to be `nullable`.
 - **Reason**: The API can return a null value for this field.
 <!-- auto-generated -->
+
+614. Replace the implicit OAuth 2.0 flow with the authorization-code and client-credentials flows
+- **Original**: `components.securitySchemes` declared one scheme, `oAuth`, with only an `implicit` flow (authorization URL `https://login.windows.net/common/oauth2/authorize?resource=https://api.businesscentral.dynamics.com`, scope `Financials.ReadWrite.All`), and `security` required it.
+- **Updated**: Two OAuth 2.0 schemes against the Microsoft identity platform v2.0 endpoints, with `https://login.microsoftonline.com/common/oauth2/v2.0/token` as the token URL:
+  - `oAuth` — `authorizationCode` flow, authorization URL `https://login.microsoftonline.com/common/oauth2/v2.0/authorize`, scopes `https://api.businesscentral.dynamics.com/Financials.ReadWrite.All` and `offline_access`, for delegated access with a refresh token.
+  - `oAuth_app` — `clientCredentials` flow, scope `https://api.businesscentral.dynamics.com/.default`, for app-only access.
+
+  `security` lists both as alternatives.
+- **Applied in**: the original `docs/spec/openapi.yaml`.
+- **Reason**: An implicit flow has no token URL, so the generated `ConnectionConfig` could only take a bearer token that the caller has to renew. With these flows it carries `OAuth2ClientCredentialsGrantConfig|http:BearerTokenConfig|OAuth2RefreshTokenGrantConfig auth`, the same options as the Azure Data Lake and Azure Key Vault connectors, and the connector renews tokens itself. The generated `tokenUrl` and `refreshUrl` default to the `common` endpoint. The client credentials flow needs a tenant-specific endpoint, so callers override the default, as the README describes.
 
 ## OpenAPI cli command
 

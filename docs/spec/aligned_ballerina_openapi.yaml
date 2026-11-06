@@ -15,7 +15,9 @@ servers:
       - sandbox
 security:
 - oAuth:
-  - Financials.ReadWrite.All
+  - https://api.businesscentral.dynamics.com/Financials.ReadWrite.All
+- oAuth_app:
+  - https://api.businesscentral.dynamics.com/.default
 tags:
 - name: company
   description: Represents an object of type company in Dynamics 365 Business Central
@@ -19637,8 +19639,26 @@ components:
   securitySchemes:
     oAuth:
       type: oauth2
+      description: Microsoft Entra ID OAuth 2.0, delegated access on behalf of a signed-in user through
+        the authorization-code flow. Request the https://api.businesscentral.dynamics.com/Financials.ReadWrite.All
+        scope, with offline_access to receive a refresh token. Replace 'common' in the URLs with a tenant
+        ID or domain to restrict sign-in to a single tenant.
       flows:
-        implicit:
-          authorizationUrl: https://login.windows.net/common/oauth2/authorize?resource=https://api.businesscentral.dynamics.com
+        authorizationCode:
+          authorizationUrl: https://login.microsoftonline.com/common/oauth2/v2.0/authorize
+          tokenUrl: https://login.microsoftonline.com/common/oauth2/v2.0/token
           scopes:
-            Financials.ReadWrite.All: financials.read.write.all
+            https://api.businesscentral.dynamics.com/Financials.ReadWrite.All: Access Business Central
+              as the signed-in user
+            offline_access: Receive a refresh token
+    oAuth_app:
+      type: oauth2
+      description: Microsoft Entra ID OAuth 2.0, app-only access through the client-credentials flow with
+        the https://api.businesscentral.dynamics.com/.default scope. Replace 'common' in the token URL
+        with a tenant ID or domain, since the client-credentials flow requires one.
+      flows:
+        clientCredentials:
+          tokenUrl: https://login.microsoftonline.com/common/oauth2/v2.0/token
+          scopes:
+            https://api.businesscentral.dynamics.com/.default: Access Business Central with the permissions
+              granted to the application

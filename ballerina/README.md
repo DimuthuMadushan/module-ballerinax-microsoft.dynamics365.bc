@@ -4,8 +4,6 @@
 
 The Business Central connector provides access to the Business Central Standard APIs, version 1.0 over OAuth 2.0. It covers the complete published surface spanning the business objects of a company (customers, vendors, items, employees, sales and purchase documents, journals, dimensions and general ledger entries), the bound actions that move a document through its lifecycle, the financial statement reports, the attachments, pictures and generated PDF documents, and the reference data that the documents point at.
 
-Every operation is scoped to a company within a Business Central environment, so a typical integration reads the companies available to the signed-in user first and then works within one of them.
-
 ### Key Features
 
 - Manage the customer, vendor, item and employee master data of a company
@@ -18,50 +16,66 @@ Every operation is scoped to a company within a Business Central environment, so
 
 ## Setup guide
 
-The connector authenticates with an OAuth 2.0 bearer token issued by Microsoft Entra ID for the Business Central API.
+To use the Business Central connector, you need a Business Central environment, a user account with access to it, and an application registered in Microsoft Entra ID.
 
 ### Step 1: Register an application in Microsoft Entra ID
 
-1. Sign in to the [Azure Portal](https://portal.azure.com) with an account that can register applications, and open **Entra** from the Microsoft Cloud menu. You can also go straight to the [Microsoft Entra admin center](https://entra.microsoft.com/).
+1. Sign in to the [Azure portal](https://portal.azure.com) with an account that can register applications, and open **Entra** from the Microsoft Cloud menu. You can also go straight to the [Microsoft Entra admin center](https://entra.microsoft.com/).
 
    ![Azure Portal](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-microsoft.dynamics365.bc/refs/heads/main/docs/resources/azure-portal.png)
 
-2. In the Microsoft Entra admin center, select **App registrations** from the left sidebar, then select **New registration**.
+2. Select **App registrations** from the left sidebar, then select **New registration**.
 
    ![Entra main page](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-microsoft.dynamics365.bc/refs/heads/main/docs/resources/entra-main-page.png)
 
-3. Give the application a name, and add a redirect URI that matches how you will acquire tokens (for example `http://localhost` for local testing). For **Supported account types**, choose **Accounts in this organizational directory only** — Business Central is reached with a work or school account in the tenant that owns the environment, so personal Microsoft accounts cannot be used.
+3. Enter a name, choose **Accounts in this organizational directory only**, add `https://jwt.ms` as a **Web** redirect URI, and select **Register**. Business Central is reached with a work or school account in the tenant that owns the environment, so personal Microsoft accounts cannot be used.
 
    ![Register an application](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-microsoft.dynamics365.bc/refs/heads/main/docs/resources/register-application.jpeg)
 
-4. Select **Register**, then note the **Application (client) ID** and the **Directory (tenant) ID**.
+4. On the application's **Overview** page, note the **Application (client) ID** and the **Directory (tenant) ID**.
 
    ![Application overview](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-microsoft.dynamics365.bc/refs/heads/main/docs/resources/application-overview.jpeg)
 
 ### Step 2: Grant the Business Central API permissions
 
-1. Open the registered application and go to **API permissions** > **Add a permission**.
-2. Select **Dynamics 365 Business Central**, then choose the permission set your integration needs — `Financials.ReadWrite.All` covers the operations in this connector.
-3. Select **Add permissions**, then **Grant admin consent** for the tenant.
+1. Go to **API permissions** > **Add a permission** > **Dynamics 365 Business Central**.
+2. Select the delegated **Financials.ReadWrite.All** permission, which covers the operations in this connector, and select **Add permissions**.
+3. Grant admin consent if your tenant requires it.
 
 ### Step 3: Create a client secret
 
-1. In the registered application, go to **Certificates & secrets** > **Client secrets** > **New client secret**.
+1. Go to **Certificates & secrets** > **Client secrets** > **New client secret**.
 
    ![Add client secret](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-microsoft.dynamics365.bc/refs/heads/main/docs/resources/add-client-secret.png)
 
-2. Add a description and an expiry, select **Add**, and copy the secret **Value** immediately — it is shown only once.
+2. Add a description and an expiry, select **Add**, and copy the secret's **Value**. The value is shown only once.
 
-### Step 4: Register the application in Business Central
+### Step 4: Obtain a refresh token
 
-1. Sign in to your Business Central environment and open the **Microsoft Entra Applications** page.
-2. Create an entry for the client ID from step 1, set its state to **Enabled**, and assign the permission sets the integration needs (for example `D365 BUS FULL ACCESS`).
+The connector authenticates with an OAuth 2.0 refresh token from Microsoft Entra ID and renews its access token automatically.
 
-### Step 5: Obtain an access token
+1. Open the following URL in a browser, with your tenant ID and client ID, and sign in with a user account that has access to the Business Central environment:
 
-Request a token from the Microsoft identity platform for the scope `https://api.businesscentral.dynamics.com/.default`, using the tenant ID, client ID and client secret from the steps above. The resulting access token is what the connector sends as its bearer token.
+    ```text
+    https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/authorize?client_id=<client-id>&response_type=code&redirect_uri=https%3A%2F%2Fjwt.ms&response_mode=query&scope=https%3A%2F%2Fapi.businesscentral.dynamics.com%2FFinancials.ReadWrite.All%20offline_access
+    ```
 
-### Step 6: Find the environment and company
+2. Accept the consent prompt. The browser opens `https://jwt.ms/?code=<authorization-code>`. Copy the `code` value, which is single-use and expires within minutes.
+3. Exchange the code for a refresh token:
+
+    ```bash
+    curl -X POST "https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token" \
+      --data-urlencode "client_id=<client-id>" \
+      --data-urlencode "client_secret=<client-secret>" \
+      --data-urlencode "scope=https://api.businesscentral.dynamics.com/Financials.ReadWrite.All offline_access" \
+      --data-urlencode "code=<authorization-code>" \
+      --data-urlencode "redirect_uri=https://jwt.ms" \
+      --data-urlencode "grant_type=authorization_code"
+    ```
+
+4. Copy the `refresh_token` value from the JSON response.
+
+### Step 5: Find the environment and company
 
 The service URL carries the environment name — `https://api.businesscentral.dynamics.com/v2.0/{environment}/api/v1.0`, where `{environment}` is `production` by default and can be a sandbox name instead. The client defaults to the production environment; pass a different service URL to `init` to target a sandbox. Call `listCompanies` to obtain the identifier of the company the integration works in.
 
@@ -77,25 +91,41 @@ import ballerinax/microsoft.dynamics365.bc as bc;
 
 ### Step 2: Instantiate a new connector
 
-Create a `Config.toml` file with the access token obtained in the setup guide:
-
-```toml
-token = "<access token>"
-```
-
-Then initialise the client:
+Create a `bc:Client` with the credentials from Step 4 of the setup guide.
 
 ```ballerina
-configurable string token = ?;
+configurable string tenantId = ?;
+configurable string clientId = ?;
+configurable string clientSecret = ?;
+configurable string refreshToken = ?;
 
-final bc:Client dynamics365 = check new ({auth: {token}});
+final bc:OAuth2RefreshTokenGrantConfig auth = {
+    clientId,
+    clientSecret,
+    refreshToken,
+    refreshUrl: string `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
+    scopes: ["https://api.businesscentral.dynamics.com/Financials.ReadWrite.All", "offline_access"]
+};
+
+final bc:Client dynamics365 = check new ({auth});
+```
+
+> **Note:** The connector's default token URL is the multi-tenant `https://login.microsoftonline.com/common/oauth2/v2.0/token` endpoint. It works only for applications that accept accounts from any organization, so change it to your tenant's endpoint, as `refreshUrl` does above.
+
+Provide the values in a `Config.toml` file:
+
+```toml
+tenantId = "<tenant-id>"
+clientId = "<client-id>"
+clientSecret = "<client-secret>"
+refreshToken = "<refresh-token>"
 ```
 
 To work against a sandbox environment, pass the service URL explicitly:
 
 ```ballerina
 final bc:Client sandboxClient = check new (
-    {auth: {token}},
+    {auth},
     "https://api.businesscentral.dynamics.com/v2.0/sandbox/api/v1.0"
 );
 ```

@@ -23,16 +23,7 @@ same client and the same OData query options.
    [setup guide](../ballerina/README.md#setup-guide), and note the identifier of the
    company the example should run against.
 
-2. Build and push the connector to your local Ballerina repository. Starting from this
-   `examples` directory, push the connector and then enter the example to run:
-
-    ```bash
-    cd ../ballerina
-    bal pack && bal push --repository=local
-    cd ../examples/<example>
-    ```
-
-3. For each example, create a `Config.toml` in that example's directory with the values it
+2. For each example, create a `Config.toml` in that example's directory with the values it
    declares as `configurable` — every example needs `token` and `companyId`, and
    `customer_invoice_workflow` also needs `itemId` and `invoiceDate`, and
    `sales_order_processing` also needs `itemId`:
